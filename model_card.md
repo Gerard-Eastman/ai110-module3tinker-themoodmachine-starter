@@ -5,7 +5,6 @@ This model card is for the Mood Machine project, which includes **two** versions
 1. A **rule based model** implemented in `mood_analyzer.py`
 2. A **machine learning model** implemented in `ml_experiments.py` using scikit learn
 
-You may complete this model card for whichever version you used, or compare both if you explored them.
 
 ## 1. Model Overview
 
@@ -13,10 +12,7 @@ You may complete this model card for whichever version you used, or compare both
 I used both the rule based and the machine learning model to compare. For rule based I got up to 74% accuracy on the test data and when expirementing I found that it has a hard time understanding slang. My attention mechinism was probably to weak too because it segments the expressions in chunks which can make it hard. The ml model was a perfect fit and was able to get slang correct too. 
 
 **Intended purpose:**  
-What is this model trying to do?  
-Example: classify short text messages as moods like positive, negative, neutral, or mixed.
-
-This model is trying to classify a text message as postive, negative, or mixed. But it does so in different ways. Using a rule based system and using a machine learning model to see how closely I can get to the model with rules. 74% is pretty good in my opinion.
+This model is trying to classify a text message as positive, negative, or mixed. But it does so in different ways. Using a rule based system and using a machine learning model to see how closely I can get to the model with rules. 74% is pretty good in my opinion.
 
 **How it works (brief):**  
 ##### Rule Based Model
