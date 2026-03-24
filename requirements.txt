@@ -1,3 +1,4 @@
 scikit-learn
 matplotlib
 ipykernel
+emoji-2.15.0
