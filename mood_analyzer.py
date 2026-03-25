@@ -55,9 +55,12 @@ class MoodAnalyzer:
           - Handle simple emojis separately (":)", ":-(", "🥲", "😂")
           - Normalize repeated characters ("soooo" -> "soo")
         """
+        text = text.lower()
         padded_text = ''.join(f' {ch} ' if emoji.is_emoji(ch) else f'{ch}' for ch in text)
-        cleaned = ''.join(ch for ch in padded_text if ch not in string.punctuation).strip().lower()
-        final = re.sub(r'(.)(\1{2,})', r'\1\1', cleaned)
+        punct_to_remove = string.punctuation.replace("'", "")
+        cleaned = ''.join(ch for ch in padded_text if ch not in punct_to_remove).strip().lower()
+        #Changed to normalize repeated characters
+        final = re.sub(r'(.)(\1{3,})', r'\1\1\1', cleaned)
 
 
         print(f"Cleaned: {final}")    
@@ -94,37 +97,25 @@ class MoodAnalyzer:
         # Hint: if you implement negation, you may want to look at pairs of tokens,
         # like ("not", "happy") or ("never", "fun").
         tokens = self.preprocess(text)
-        score = 50
-
-        # Modifier state
-        amplifier = 1.0
+        sarcastic_emojis = {"🙃"}
+        sarcastic = any(token in sarcastic_emojis for token in tokens)
+        score = 0
         negated = False
 
         for token in tokens:
             if token in NEGATIONS:
                 negated = True
-
-            elif token in AMPLIFIERS:
-                amplifier = min(amplifier * AMPLIFIERS[token], 3.0)
-
-            elif token in EMOJI_SCORES:
-                score += EMOJI_SCORES[token]
-                amplifier = 1.0
-                negated = False
-
             elif token in self.positive_words:
-                change = self.positive_words[token] * min(amplifier, 3.0)
-                score += -change if negated else change
-                amplifier = 1.0
+                if sarcastic:
+                    score += -1  # flip positive to negative for sarcasm
+                else:
+                    score += -1 if negated else 1
                 negated = False
-
             elif token in self.negative_words:
-                change = self.negative_words[token] * min(amplifier, 3.0)
-                score += change if negated else -change
-                amplifier = 1.0
+                score += 1 if negated else -1
                 negated = False
 
-        return int(score)
+        return score
 
 
     # ---------------------------------------------------------------------
@@ -138,7 +129,7 @@ class MoodAnalyzer:
         The default mapping is:
           - score > 0  -> "positive"
           - score < 0  -> "negative"
-          - score == 0 -> "neutral"
+          - score == 0 -> "mixed"
 
         TODO: You can adjust this mapping if it makes sense for your model.
         For example:
@@ -149,9 +140,9 @@ class MoodAnalyzer:
         """
         score = self.score_text(text)
 
-        if score >= 60:
+        if score > 0:
             return "positive"
-        elif score <= 40:
+        elif score < 0:
             return "negative"
         else:
             return "mixed"

@@ -133,7 +133,18 @@ SAMPLE_POSTS = [
     "no cap this hit different fr",                      
     "I'm crying 💀💀💀",                                 
     "lowkey stressed but also kinda thriving?",          
-    "today was okay I guess",     
+    "today was okay I guess",
+    #new added examples
+    "I’m very happy today 😄",
+    "This meal was terrible, I’m never coming back",
+    "The service was okay, but the wait time was ridiculous",
+    "Not sure how I feel, it’s both good and bad",
+    "I absolutely love this!!!",
+    "I planned to love this, but the glitches made it frustrating 😕",
+    "Not bad at all, honestly I was pleasantly surprised.",
+    "I’m so tired of pretending everything is amazing when it’s not.",
+    "Wow, this is the best customer service I’ve ever had! 🥳",
+    "The plot was okay, but the characters were flat—felt like a waste."     
 ]                       
 
 # Human labels for each post above.
@@ -156,6 +167,18 @@ TRUE_LABELS = [
     "mixed",
     "mixed",
     "mixed",
+
+    # new added examples
+    "positive",
+    "negative",
+    "mixed",
+    "mixed",
+    "positive",
+    "negative",
+    "positive",
+    "negative",
+    "positive",
+    "negative"
 ]
 
 # TODO: Add 5-10 more posts and labels.

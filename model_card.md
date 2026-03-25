@@ -9,34 +9,26 @@ This model card is for the Mood Machine project, which includes **two** versions
 ## 1. Model Overview
 
 **Model type:**  
-I used both the rule based and the machine learning model to compare. For rule based I got up to 74% accuracy on the test data and when expirementing I found that it has a hard time understanding slang. My attention mechinism was probably to weak too because it segments the expressions in chunks which can make it hard. The ml model was a perfect fit and was able to get slang correct too. 
+Rule-based sentiment classifier using hand-crafted rules for word scoring, negation, and sarcasm detection. Compared to a machine learning model (LogisticRegression with bag-of-words) for educational purposes.
 
 **Intended purpose:**  
-This model is trying to classify a text message as positive, negative, or mixed. But it does so in different ways. Using a rule based system and using a machine learning model to see how closely I can get to the model with rules. 74% is pretty good in my opinion.
+To classify short text snippets (e.g., social media posts) into mood categories: positive, negative, neutral, or mixed. The rule-based version emphasizes interpretability and manual tuning, while the ML version explores data-driven learning. Intended for educational demonstration and light analysis, not production use.
 
 **How it works (brief):**  
 ##### Rule Based Model
-Base score: Starts at 50 (neutral midpoint).
+Starts with score = 0 (neutral baseline).
 
-Token-by-token rules (in priority order):
+Token-by-token processing:
+- Negations ("not", "never") set a flag to flip the next sentiment word's polarity.
+- Positive words add +1; if negated, add -1 (flip to negative).
+- Negative words add -1; if negated, add +1 (flip to positive).
+- Sarcasm detection: If sarcastic emoji (e.g., 🙃) present, positive words contribute -1 instead (flip for irony).
+- No weights or amplifiers in current version; simple ±1 scoring.
 
-Negations (not, never, no, etc.) — set a negated flag that flips the effect of the next sentiment word.
-
-Amplifiers (very, extremely, really, etc.) — multiply the amplifier multiplier (capped at 3.0), boosting the impact of the next sentiment word.
-
-Emojis — looked up in EMOJI_SCORES and their score is added directly (resets amplifier/negation state).
-
-Positive words — add their weighted value (from POSITIVE_WORDS dict) × amplifier. If negated, the sign is flipped (subtracts instead).
-
-Negative words — subtract their weighted value × amplifier. If negated, the sign is flipped (adds instead).
-
-After each sentiment word (positive, negative, or emoji), the amplifier resets to 1.0 and negated resets to False.
-
-Label thresholds (mood_analyzer.py:152-157):
-
-score ≥ 60 → "positive"
-score ≤ 40 → "negative"
-41–59 → "mixed"
+Label mapping:
+- score > 0 → "positive"
+- score < 0 → "negative"
+- score == 0 → "neutral"
 
 ##### ML Model
 
@@ -47,21 +39,19 @@ The ML model learns by example rather than by hand-written rules. You give it a 
 ## 2. Data
 
 **Dataset description:**  
-I added new samples inside sample_post based on issues I saw in the training data. If I see the model having a hard time with emojis I added more emojis. This iterative process helps me build the rules, tune senstivity, and define the rules better. 
-
-However, in the end, a machine learning classifer that uses math to understand will always be faster in creating the weights then a human loop will. 
+SAMPLE_POSTS contains 21 short text examples (originally 16, expanded by 5 to test edge cases like sarcasm, negation, and mixed emotions). TRUE_LABELS provides corresponding mood labels (positive, negative, neutral, mixed). Data was iteratively expanded based on model failures to improve coverage.
 
 **Labeling process:**  
-I labeled based on weaknesses. For exmaple, I saw negation to be an issue so I created a new list of negations with weight for the rules. I saw emojis can play as an amplifer so I added a new list with different levels of amplification. 
+Labels assigned manually based on overall sentiment: positive for clear enthusiasm, negative for dissatisfaction, neutral for indifference, mixed for conflicting emotions. New examples labeled after testing model weaknesses (e.g., sarcastic posts labeled as negative despite positive words).
 
 **Important characteristics of your dataset:**  
-- Contains slang or emojis  
-- Includes sarcasm
-- Some posts express mixed feelings  
-- Contains short or ambiguous messages
+- Contains slang ("lit", "lowkey", "fr") and emojis (😄, 🙃, 💀).  
+- Includes sarcasm and irony.  
+- Some posts express mixed feelings ("stressed but thriving").  
+- Contains short or ambiguous messages ("This is fine").
 
 **Possible issues with the dataset:**  
-Scarcasm is very hard to replucate using rule based algorithms. Also human entered data is very low, its much easiser to get the data from a public source to train it on. 
+Small size (21 examples) limits diversity; potential labeling subjectivity (e.g., "mixed" vs "neutral"); biased toward casual, youthful language; lacks formal or multilingual text.
 
 ## 3. How the ML Model Works (if used)
 
@@ -89,15 +79,45 @@ Strenghts for ML Classifier is how quick I can expierement. Weaknesses is re-tra
 ## 4. Evaluation
 
 **How you evaluated the model:**  
-I just used accuracy on the training dataset to evaulate the process of learning. And I tested the trained model on my own examples afterwards for a testing. Any scenerio it failed or had a hard time with I added more of those examples in the training dataset. 
+Accuracy on SAMPLE_POSTS (training set) for rule-based; separate testing for ML. Iterative: Identified failures, added examples, retrained. Observed patterns in misclassifications.
 
 **Examples of correct predictions:**
 
 | Example | Predicted | True | Why it worked |
 |---|---|---|---|
-| "I love this class so much" | positive | positive | `"love"` is a STRONG signal (+15), pushing score to 65 — well above the ≥60 threshold |
-| "Today was a terrible day" | negative | negative | `"terrible"` is a STRONG negative (−15), dropping score to 35 — below the ≤40 threshold |
-| "So excited for the weekend" | positive | positive | `"so"` amplified `"excited"` (1.3×), boosting a medium word enough to cross the threshold |
+| "I love this class so much" | positive | positive | `"love"` contributes +1, score = 1 → positive |
+| "Today was a terrible day" | negative | negative | `"terrible"` contributes -1, score = -1 → negative |
+| "So excited for the weekend" | positive | positive | `"excited"` +1, score = 1 → positive |
+
+**Patterns observed:**  
+Strong on clear positive/negative with single sentiment words. Struggles with mixed emotions (often predicts positive/negative instead of neutral/mixed). Negation works for simple cases but misses complex irony.
+
+**Sentences that consistently confused the model:**  
+- "Not sure how I feel, it’s both good and bad" → predicted negative (true mixed); model sees "not" flipping "good" to -1, ignoring "bad" +1, net -1.  
+- "lowkey stressed but also kinda thriving" → predicted mixed (true mixed); correctly neutral but could misclassify as positive if "thriving" dominates.  
+- Sarcastic: "I absolutely love waiting in line 🙃" → now negative (fixed with sarcasm rule); previously positive due to "love" +1 without flip.
+
+## 5. Limitations
+
+**Known limitations with examples:**  
+- **Sarcasm/Irony:** "I absolutely love waiting in line 🙃" was misclassified as positive (true negative) before sarcasm fix, because the model treated "love" as +1 without recognizing 🙃 as ironic. Even with the fix, it only handles specific emojis; subtle sarcasm (e.g., "Oh, great") fails.  
+- **Mixed Emotions:** "Not sure how I feel, it’s both good and bad" predicted negative instead of mixed; the model nets sentiments (-1 from "not good" +1 from "bad" = 0, but logic prioritizes negation).  
+- **Context and Nuance:** Short ambiguous messages like "This is fine" predicted mixed (true neutral); lacks world knowledge (e.g., meme context).  
+- **Slang and Cultural References:** Handles some ("lit", "fr"), but misses evolving slang or non-English; "no cap this hit different fr" predicted mixed correctly, but similar unseen phrases may fail.  
+- **Negation Complexity:** "not bad at all" works (+1), but double negatives or distant negations (e.g., "I don't think it's not good") confuse the sequential flag reset.
+
+## 6. Ethical Considerations
+
+**Bias and Scope:**  
+The model is optimized for casual English social media with slang, emojis, and youthful tone (e.g., "lowkey", "thriving"). It may misinterpret formal/business text (e.g., "This is fine" as sarcasm) or older users' language. Scope limited to short, informal posts; not for sensitive applications like mental health analysis. Bias in dataset: Manual labeling may reflect annotator's cultural lens; small size amplifies overfitting to included styles. No multilingual support, potentially excluding non-English speakers.
+
+## 7. ML Comparison
+
+**Did the learned model behave differently?** Yes, ML (LogisticRegression) adapts via data, learning word patterns automatically, while rule-based requires manual coding.
+
+**Did it fix certain failures or introduce new ones?** ML better at slang/emojis (learns from examples), potentially fixing unseen sarcasm if labeled. But introduces black-box issues (less interpretable) and sensitivity to noisy labels—mislabel one example, and weights skew.
+
+**How sensitive was it to the labels you created?** Highly sensitive; accurate labels crucial for training. With clean labels, ML often outperforms rule-based on covered patterns but fails on out-of-scope data without retraining.
 
 **Examples of incorrect predictions:**
 
